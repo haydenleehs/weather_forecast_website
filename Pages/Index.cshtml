@@ -1,0 +1,293 @@
+﻿@page
+@model IndexModel
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weather Dashboard</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* --- GLASS SQUARES (Main UI) --- */
+        .glass-square {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            aspect-ratio: 1 / 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .glass-square:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* --- GRID LAYOUT (4 Columns) --- */
+        .weather-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            max-width: 1100px;
+            width: 95%;
+            margin-top: 40px;
+        }
+
+        /* Tablet: 2x2 Grid */
+        @@media (max-width: 900px) {
+            .weather-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* Mobile: 1 Column Stack */
+        @@media (max-width: 600px) {
+            .weather-grid { grid-template-columns: 1fr; }
+        }
+
+        /* --- SEARCH BAR --- */
+        .search-container {
+            margin-top: 60px;
+            text-align: center;
+            width: 100%;
+        }
+
+        .search-input {
+            padding: 15px 25px;
+            border-radius: 50px;
+            border: none;
+            width: 50%;
+            max-width: 400px;
+            text-align: center;
+            font-size: 1.1rem;
+            outline: none;
+        }
+
+        .search-button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+        }
+        .search-button:hover { background: rgba(255, 255, 255, 0.4); }
+
+        /* --- FORECAST SCROLL --- */
+        .forecast-scroll {
+            display: flex;
+            overflow-x: auto;
+            gap: 15px;
+            padding: 20px;
+            margin-top: 30px;
+            width: 90%;
+            max-width: 1100px;
+        }
+
+        /* Custom Scrollbar Styling */
+        .forecast-scroll::-webkit-scrollbar { height: 8px; }
+        .forecast-scroll::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+        .forecast-scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); border-radius: 10px; }
+        .forecast-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.5); }
+
+        .forecast-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(5px);
+            border-radius: 15px;
+            padding: 10px;
+            min-width: 110px;
+            height: 180px;
+            text-align: center;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+        }
+        /* The Round Location Button */
+        .location-button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%; /* Perfect Circle */
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+            display: flex;              /* Center the emoji */
+            align-items: center;
+            justify-content: center;
+        }
+
+        .location-button:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: scale(1.1); /* Grow slightly */
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3); /* Glow effect */
+        }
+
+        .location-button:active {
+            transform: scale(0.9); /* Click effect */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="search-container">
+        <h1 style="font-weight: 300; font-size: 2.5rem; margin-bottom: 20px;">Weather Dashboard</h1>
+        <form method="post" style="display: flex; justify-content: center; gap: 10px; align-items: center;">
+            <input type="text" name="city" class="search-input" placeholder="Enter city name..." autocomplete="off" required/>
+            
+            <button type="submit" class="search-button">Search</button>
+
+            <button type="button" class="location-button" onclick="getLocation()" title="Use Current Location">
+                📍
+            </button>
+        </form>
+    </div>
+
+    @if (Model.WeatherData != null && Model.WeatherData.list != null)
+    {
+        <div class="weather-grid">
+            
+            <div class="glass-square">
+                <h3>
+                    @Model.WeatherData.city.name, 
+                    <span style="font-size: 0.9em; opacity: 0.8;">
+                        @(new System.Globalization.RegionInfo(Model.WeatherData.city.country).EnglishName)
+                    </span>
+                </h3>
+                <img src="https://openweathermap.org/img/wn/@(Model.WeatherData.list[0].weather[0].icon)@@4x.png" width="100" />
+                <p style="text-transform: capitalize; margin:0;">
+                    @Model.WeatherData.list[0].weather[0].description
+                </p>
+            </div>
+
+            <div class="glass-square">
+                <h3>Temp</h3>
+                <h1 style="font-size: 3.5rem; margin: 5px 0;">@Math.Round(Model.WeatherData.list[0].main.temp)°</h1>
+                
+                <div style="font-size: 0.9rem; opacity: 0.9; margin-top: 5px; line-height: 1.4;">
+                    Feels like <b>@Math.Round(Model.WeatherData.list[0].main.feels_like)°</b>
+                    <br>
+                    Wind <b>@Math.Round(Model.WeatherData.list[0].wind.speed, 1) m/s</b>
+                </div>
+            </div>
+
+            <div class="glass-square">
+                <h3>Humidity</h3>
+                <div style="font-size: 4rem; margin: 10px 0;">💧</div>
+                <h2>@Model.WeatherData.list[0].main.humidity %</h2>
+            </div>
+
+            <div class="glass-square">
+                <h3>Local Time</h3>
+                <h1 style="font-size: 2.5rem; margin: 15px 0; font-weight: 300;">
+                    @DateTime.UtcNow.AddSeconds(Model.WeatherData.city.timezone).ToString("h:mm tt")
+                </h1>
+                <p style="opacity: 0.8; font-size: 1.1rem; margin-bottom: 5px;">
+                    @DateTime.UtcNow.AddSeconds(Model.WeatherData.city.timezone).ToString("dddd")
+                </p>
+                <p style="opacity: 0.6; margin-top: -5px; font-size: 0.9rem;">
+                    @DateTime.UtcNow.AddSeconds(Model.WeatherData.city.timezone).ToString("MMM d, yyyy")
+                </p>
+            </div>
+        </div>
+
+        <h3 style="margin-top: 40px; font-weight: 300;">Next 24 Hours</h3>
+        <div class="forecast-scroll">
+            @foreach (var item in Model.WeatherData.list)
+            {
+                <div class="forecast-card">
+                    <p style="opacity: 0.8; margin: 0; font-size: 0.9rem;">
+                        @DateTime.Parse(item.dt_txt).AddSeconds(Model.WeatherData.city.timezone).ToString("h:mm tt")
+                    </p>
+                    
+                    <img src="https://openweathermap.org/img/wn/@(item.weather[0].icon).png" width="50" style="margin: -5px 0;" />
+                    
+                    <p style="text-transform: capitalize; margin: 0; font-size: 0.8rem; font-weight: 500;">
+                        @item.weather[0].description
+                    </p>
+                    
+                    <h4 style="margin: 5px 0;">@Math.Round(item.main.temp)°</h4>
+
+                    <div style="font-size: 0.8rem; color: #aaddff; background: rgba(0,0,0,0.2); padding: 2px 8px; border-radius: 10px; width: 100%;">
+                        🌧️ @Math.Round(item.pop * 100)%
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div style="margin-top: 20px; color: #ff9999; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 10px;">
+            @Model.ErrorMessage
+        </div>
+    }
+
+    <script>
+        function getLocation() {
+            if (navigator.geolocation) {
+                // Ask browser for location
+                navigator.geolocation.getCurrentPosition(showPosition, showError);
+            } else {
+                alert("Geolocation is not supported by this browser.");
+            }
+        }
+
+        function showPosition(position) {
+            // Get the coordinates
+            var lat = position.coords.latitude;
+            var lon = position.coords.longitude;
+            
+            // Reload the page sending these coordinates to the C# backend
+            // This triggers the OnGetAsync(lat, lon) method we wrote earlier
+            window.location.href = "/?lat=" + lat + "&lon=" + lon;
+        }
+
+        function showError(error) {
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    alert("User denied the request for Geolocation.");
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    alert("Location information is unavailable.");
+                    break;
+                case error.TIMEOUT:
+                    alert("The request to get user location timed out.");
+                    break;
+                case error.UNKNOWN_ERROR:
+                    alert("An unknown error occurred.");
+                    break;
+            }
+        }
+    </script>
+
+</body>
+</html>
